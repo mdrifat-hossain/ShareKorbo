@@ -1,0 +1,72 @@
+# ===============================
+# GENERAL
+# ===============================
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
+
+# ===============================
+# ENV FILES (IMPORTANT)
+# ===============================
+.env
+.env.*
+!.env.example
+
+# ===============================
+# FRONTEND (React Native + Expo)
+# ===============================
+frontend/node_modules/
+frontend/.expo/
+frontend/dist/
+frontend/web-build/
+frontend/expo-env.d.ts
+
+# Expo / Metro
+frontend/.metro-health-check*
+
+# Native build files
+frontend/android/
+frontend/ios/
+frontend/.kotlin/
+
+# Debug
+frontend/npm-debug.*
+frontend/yarn-debug.*
+frontend/yarn-error.*
+
+# Certificates / keys
+frontend/*.jks
+frontend/*.p8
+frontend/*.p12
+frontend/*.key
+frontend/*.mobileprovision
+
+# TypeScript
+frontend/*.tsbuildinfo
+
+# ===============================
+# BACKEND (Node.js)
+# ===============================
+backend/node_modules/
+backend/dist/
+backend/build/
+backend/venv/
+
+backend/npm-debug.*
+backend/yarn-debug.*
+backend/yarn-error.*
+
+# ===============================
+# ROOT (if any node setup exists)
+# ===============================
+node_modules/
+dist/
+build/
+
+# ===============================
+# MISC
+# ===============================
+*.pem
+*.orig.*
+
