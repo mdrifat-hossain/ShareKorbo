@@ -1,13 +1,91 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 
+import * as ImagePicker from "expo-image-picker";
+import axios from "axios";
+
+import { Alert, Image, ActivityIndicator } from "react-native";
+
 export default function RegisterScreen({ navigation }: any) {
+  const [university, setUniversity] = useState("");
+  const [studentId, setStudentId] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [image, setImage] = useState<any>(null);
+
+  const [loading, setLoading] = useState(false);
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0]);
+    }
+  };
+
+  const handleRegister = async () => {
+    try {
+      if (!university || !studentId || !email || !password || !image) {
+        Alert.alert("Error", "Please fill all fields");
+        return;
+      }
+
+      setLoading(true);
+
+      const formData = new FormData();
+
+      formData.append("university", university);
+      formData.append("student_id", studentId);
+      formData.append("email", email);
+      formData.append("password", password);
+
+      // Convert image to blob (for web support)
+      const imageResponse = await fetch(image.uri);
+
+      const blob = await imageResponse.blob();
+
+      formData.append(
+        "student_id_image",
+        blob,
+        image.fileName || "student-id.png",
+      );
+
+      console.log("University:", university);
+      console.log("Student ID:", studentId);
+      console.log("Email:", email);
+      console.log("Password:", password);
+      console.log("Image:", image);
+
+      // SEND TO BACKEND
+      const registerResponse = await axios.post(
+        "http://localhost:8000/auth/register",
+        formData,
+      );
+
+      console.log(registerResponse.data);
+
+      Alert.alert("Success", "Registration UI working");
+
+      navigation.navigate("Verification");
+    } catch (error) {
+      console.log(error);
+
+      Alert.alert("Error", "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        
         {/* HEADER */}
         <View className="px-6 py-8 flex-row justify-between items-center">
           <Text className="text-2xl font-black text-primary">ShareKorbo</Text>
@@ -51,10 +129,20 @@ export default function RegisterScreen({ navigation }: any) {
                   Student ID Card Photo
                 </Text>
 
-                <Pressable className="border-2 border-dashed border-outline-variant/40 rounded-xl p-8 items-center">
+                <Pressable
+                  onPress={pickImage}
+                  className="border-2 border-dashed border-outline-variant/40 rounded-xl p-8 items-center"
+                >
                   <View className="w-16 h-16 bg-primary-fixed rounded-full items-center justify-center mb-3">
                     <Text className="text-primary text-2xl">📷</Text>
                   </View>
+
+                  {image && (
+                    <Image
+                      source={{ uri: image.uri }}
+                      className="w-32 h-32 rounded-xl mb-4"
+                    />
+                  )}
 
                   <Text className="font-bold text-on-surface text-base">
                     Upload Student ID Photo
@@ -77,7 +165,9 @@ export default function RegisterScreen({ navigation }: any) {
                     University Name
                   </Text>
                   <TextInput
-                    placeholder="e.g. Stanford University"
+                    value={university}
+                    onChangeText={setUniversity}
+                    placeholder="e.g. United International University"
                     className="px-5 py-4 bg-surface-container-highest rounded-lg"
                   />
                 </View>
@@ -87,6 +177,8 @@ export default function RegisterScreen({ navigation }: any) {
                     Student ID Number
                   </Text>
                   <TextInput
+                    value={studentId}
+                    onChangeText={setStudentId}
                     placeholder="e.g. 12345678"
                     className="px-5 py-4 bg-surface-container-highest rounded-lg"
                   />
@@ -97,6 +189,8 @@ export default function RegisterScreen({ navigation }: any) {
                     University Email
                   </Text>
                   <TextInput
+                    value={email}
+                    onChangeText={setEmail}
                     placeholder="name@university.edu"
                     className="px-5 py-4 bg-surface-container-highest rounded-lg"
                   />
@@ -107,6 +201,8 @@ export default function RegisterScreen({ navigation }: any) {
                     Account Password
                   </Text>
                   <TextInput
+                    value={password}
+                    onChangeText={setPassword}
                     secureTextEntry
                     placeholder="••••••••"
                     className="px-5 py-4 bg-surface-container-highest rounded-lg"
@@ -125,14 +221,20 @@ export default function RegisterScreen({ navigation }: any) {
 
               {/* BUTTON */}
               <View className="pt-4">
-                <LinearGradient
-                  colors={["#3F51B5", "#4551af"]}
-                  className="py-5 rounded-lg items-center"
-                >
-                  <Text className="text-white font-bold text-base">
-                    Complete Registration →
-                  </Text>
-                </LinearGradient>
+                <Pressable onPress={handleRegister}>
+                  <LinearGradient
+                    colors={["#3F51B5", "#4551af"]}
+                    className="py-5 rounded-lg items-center"
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="white" />
+                    ) : (
+                      <Text className="text-white font-bold text-base">
+                        Complete Registration →
+                      </Text>
+                    )}
+                  </LinearGradient>
+                </Pressable>
 
                 <Text className="text-center mt-6 text-sm text-on-surface-variant">
                   Already have an account?

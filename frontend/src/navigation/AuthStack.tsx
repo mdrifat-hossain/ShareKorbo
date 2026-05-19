@@ -9,7 +9,24 @@ import ResourceDetailsScreen from "../screens/ResourceDetailsScreen";
 import CreateListingScreen from "../screens/CreateListingScreen";
 import ActivityScreen from "../screens/ActivityScreen";
 
-const Stack = createNativeStackNavigator();
+export type RootStackParamList = {
+  Login: undefined;
+
+  Register: undefined;
+
+  Verification: undefined;
+
+  Marketplace: undefined;
+
+  ResourceDetails: undefined;
+
+  CreateListing: undefined;
+
+  Activity: undefined;
+};
+
+const Stack =
+  createNativeStackNavigator<RootStackParamList>();
 
 export default function AuthStack() {
   return (

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,10 +10,69 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 
+import axios from "axios";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { Alert, ActivityIndicator } from "react-native";
+
 export default function LoginScreen({ navigation }: any) {
+  const [email, setEmail] = useState("");
+
+  const [password, setPassword] = useState("");
+
+  const [loading, setLoading] = useState(false);
+
   const { width } = useWindowDimensions();
 
   const isLargeScreen = width >= 1024; // lg breakpoint
+
+  const handleLogin = async () => {
+    try {
+      if (!email || !password) {
+        Alert.alert("Error", "Please fill all fields");
+
+        return;
+      }
+
+      setLoading(true);
+
+      const response = await axios.post("http://localhost:8000/auth/login", {
+        email,
+        password,
+      });
+
+      console.log(response.data);
+
+      // save token
+      await AsyncStorage.setItem("token", response.data.access_token);
+
+      await AsyncStorage.setItem(
+        "verification_status",
+        response.data.verification_status,
+      );
+
+      // save user_id so other screens (e.g. CreateListing) can use it
+      await AsyncStorage.setItem(
+        "user_id",
+        String(response.data.user_id),
+      );
+
+      // navigation logic
+      if (response.data.verification_status === "pending") {
+        navigation.navigate("Verification");
+      } else {
+        navigation.navigate("Marketplace");
+      }
+    } catch (error: any) {
+      console.log("LOGIN ERROR:");
+      console.log(error?.response?.data);
+
+      alert(error?.response?.data?.detail || "Incorrect email or password");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -98,6 +157,8 @@ export default function LoginScreen({ navigation }: any) {
                 <View>
                   <Text className="text-sm mb-2">Student ID or Email</Text>
                   <TextInput
+                    value={email}
+                    onChangeText={setEmail}
                     placeholder="e.g. 2024-1-2345"
                     className="pl-4 py-4 bg-surface-container-highest rounded-xl"
                   />
@@ -110,6 +171,8 @@ export default function LoginScreen({ navigation }: any) {
                     <Text className="text-primary text-xs">Forgot?</Text>
                   </View>
                   <TextInput
+                    value={password}
+                    onChangeText={setPassword}
                     secureTextEntry
                     placeholder="••••••••"
                     className="pl-4 py-4 bg-surface-container-highest rounded-xl"
@@ -127,11 +190,12 @@ export default function LoginScreen({ navigation }: any) {
                   colors={["#2b3896", "#4551af"]}
                   className="py-4 rounded-xl items-center"
                 >
-                  <Pressable
-                    // onPress={() => navigation.navigate("Verification")}
-                    onPress={() => navigation.navigate("Marketplace")}
-                  >
-                    <Text className="text-white font-bold">Login →</Text>
+                  <Pressable onPress={handleLogin}>
+                    {loading ? (
+                      <ActivityIndicator color="white" />
+                    ) : (
+                      <Text className="text-white font-bold">Login →</Text>
+                    )}
                   </Pressable>
                 </LinearGradient>
 
