@@ -70,3 +70,19 @@ build/
 *.pem
 *.orig.*
 
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Uploads
+backend/uploads/
+
+# Virtual env
+backend/venv/
+
+# Node modules
+frontend/node_modules/
+
+# Expo
+frontend/.expo/
