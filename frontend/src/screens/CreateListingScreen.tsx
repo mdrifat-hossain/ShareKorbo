@@ -26,8 +26,6 @@ import * as ImagePicker from "expo-image-picker";
 
 import { Alert } from "react-native";
 
-import axios from "axios";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // BASE_URL per platform:
@@ -36,12 +34,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 //   iOS simulator    → localhost (shares the Mac's network stack)
 //   Physical device  → replace 192.168.x.x with your machine's actual LAN IP
 //                      (run `ipconfig` on Windows or `ifconfig` on Mac to find it)
-const BASE_URL =
-  Platform.OS === "web"
-    ? "http://localhost:8000"
-    : Platform.OS === "android"
-      ? "http://10.0.2.2:8000"       // Android emulator
-      : "http://localhost:8000";      // iOS simulator (change to LAN IP for real device)
+import { BASE_URL } from "../utils/config";
 
 export default function CreateListingScreen() {
   const { width } = useWindowDimensions();
@@ -77,6 +70,7 @@ export default function CreateListingScreen() {
   const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
 
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const [category, setCategory] = useState("Electronics");
 
@@ -201,34 +195,53 @@ export default function CreateListingScreen() {
 
       // IMAGES
       for (const image of images) {
-        const res = await fetch(image.uri);
-        const blob = await res.blob();
-        formData.append("images", blob, image.fileName || "listing.jpg");
+        const fileName = image.fileName || "listing.jpg";
+        const mimeType = image.mimeType || "image/jpeg";
+
+        if (Platform.OS === "web") {
+          const imageResponse = await fetch(image.uri);
+          const blob = await imageResponse.blob();
+          formData.append("images", blob, fileName);
+        } else {
+          formData.append("images", {
+            uri: image.uri,
+            name: fileName,
+            type: mimeType,
+          } as any);
+        }
       }
 
       console.log("Sending request to:", `${BASE_URL}/listing/create`);
 
-      // ⚠️ Do NOT set Content-Type manually for FormData.
-      // axios must set it automatically so it includes the correct boundary.
-      const response = await axios.post(
-        `${BASE_URL}/listing/create`,
-        formData,
-      );
+      const response = await fetch(`${BASE_URL}/listing/create`, {
+        method: "POST",
+        body: formData,
+      });
 
-      console.log("RESPONSE:", response.data);
-      Alert.alert("Success", "Listing published successfully");
-      navigation.navigate("Marketplace");
-    } catch (error: any) {
-      // Log full FastAPI 422 detail so we can see which fields failed
-      const detail = error?.response?.data?.detail;
-      if (detail) {
-        console.error("422 VALIDATION ERRORS:", JSON.stringify(detail, null, 2));
-      } else {
-        console.error("REQUEST ERROR:", error?.response?.data || error?.message || error);
+      const responseData = await response.json();
+
+      console.log("RESPONSE:", responseData);
+      if (!response.ok || responseData.error) {
+        Alert.alert("Error", responseData.error || "Failed to publish listing");
+        return;
       }
 
+      setSuccessMessage("Product posted successfully");
+      Alert.alert("Success", "Product posted successfully");
+      setTimeout(() => {
+        navigation.navigate("Marketplace");
+      }, 900);
+    } catch (error: any) {
+      console.error("REQUEST ERROR:", {
+        message: error?.message,
+        baseUrl: BASE_URL,
+        error,
+      });
 
-      Alert.alert("Error", "Failed to publish listing");
+      Alert.alert(
+        "Network Error",
+        `Cannot connect to backend at ${BASE_URL}. Make sure backend is running with --host 0.0.0.0 and phone is on same Wi-Fi.`
+      );
     } finally {
       setLoading(false);
     }
@@ -237,11 +250,33 @@ export default function CreateListingScreen() {
   return (
     <View className="flex-1 bg-surface dark:bg-[#191c1e] overflow-hidden relative">
       <View className="flex-1 flex-col lg:flex-row w-full relative">
-        <Sidebar />
+        <Sidebar
+          activeRoute="CreateListing"
+          onNavigate={(route) => navigation.navigate(route)}
+        />
 
         {/* Content Wrapper */}
         <View className="flex-1 h-full w-full relative">
-          <TopAppBar />
+          {successMessage ? (
+            <View
+              className="absolute left-4 right-4 md:left-auto md:right-8 top-24 md:w-96 z-50 rounded-xl bg-secondary-container dark:bg-[#005048] px-4 py-3 flex-row items-center gap-3 shadow-lg"
+              style={{ elevation: 12 }}
+            >
+              <MaterialIcons name="check-circle" size={22} color={colorScheme === "dark" ? "#8df5e4" : "#005048"} />
+              <Text className="flex-1 text-sm font-bold text-on-secondary-container dark:text-[#8df5e4]">
+                {successMessage}
+              </Text>
+            </View>
+          ) : null}
+
+          <TopAppBar
+            onLogout={() =>
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              })
+            }
+          />
 
           {/* Main Content */}
           <ScrollView
@@ -520,11 +555,21 @@ export default function CreateListingScreen() {
                           {/* Borrow */}
                           <TouchableOpacity
                             onPress={() => setListingType("borrow")}
-                            className={`px-4 py-2 rounded-full shadow-md ${
+                            style={
                               listingType === "borrow"
-                                ? "bg-primary dark:bg-[#bcc2ff]"
-                                : "bg-surface-container-highest dark:bg-[#3f4345]"
-                            }`}
+                                ? {
+                                    backgroundColor: colorScheme === "dark" ? "#bcc2ff" : "#2b3896",
+                                    shadowColor: "#000",
+                                    shadowOffset: { width: 0, height: 2 },
+                                    shadowOpacity: 0.15,
+                                    shadowRadius: 3,
+                                    elevation: 3,
+                                  }
+                                : {
+                                    backgroundColor: colorScheme === "dark" ? "#3f4345" : "#e6e8ea",
+                                  }
+                            }
+                            className="px-4 py-2 rounded-full"
                           >
                             <Text
                               className={`text-sm font-semibold font-body ${
@@ -540,11 +585,21 @@ export default function CreateListingScreen() {
                           {/* Rent */}
                           <TouchableOpacity
                             onPress={() => setListingType("rent")}
-                            className={`px-4 py-2 rounded-full shadow-md ${
+                            style={
                               listingType === "rent"
-                                ? "bg-primary dark:bg-[#bcc2ff]"
-                                : "bg-surface-container-highest dark:bg-[#3f4345]"
-                            }`}
+                                ? {
+                                    backgroundColor: colorScheme === "dark" ? "#bcc2ff" : "#2b3896",
+                                    shadowColor: "#000",
+                                    shadowOffset: { width: 0, height: 2 },
+                                    shadowOpacity: 0.15,
+                                    shadowRadius: 3,
+                                    elevation: 3,
+                                  }
+                                : {
+                                    backgroundColor: colorScheme === "dark" ? "#3f4345" : "#e6e8ea",
+                                  }
+                            }
+                            className="px-4 py-2 rounded-full"
                           >
                             <Text
                               className={`text-sm font-semibold font-body ${
@@ -560,11 +615,21 @@ export default function CreateListingScreen() {
                           {/* Sell */}
                           <TouchableOpacity
                             onPress={() => setListingType("sell")}
-                            className={`px-4 py-2 rounded-full shadow-md ${
+                            style={
                               listingType === "sell"
-                                ? "bg-primary dark:bg-[#bcc2ff]"
-                                : "bg-surface-container-highest dark:bg-[#3f4345]"
-                            }`}
+                                ? {
+                                    backgroundColor: colorScheme === "dark" ? "#bcc2ff" : "#2b3896",
+                                    shadowColor: "#000",
+                                    shadowOffset: { width: 0, height: 2 },
+                                    shadowOpacity: 0.15,
+                                    shadowRadius: 3,
+                                    elevation: 3,
+                                  }
+                                : {
+                                    backgroundColor: colorScheme === "dark" ? "#3f4345" : "#e6e8ea",
+                                  }
+                            }
+                            className="px-4 py-2 rounded-full"
                           >
                             <Text
                               className={`text-sm font-semibold font-body ${
@@ -580,11 +645,21 @@ export default function CreateListingScreen() {
                           {/* Exchange */}
                           <TouchableOpacity
                             onPress={() => setListingType("exchange")}
-                            className={`px-4 py-2 rounded-full shadow-md ${
+                            style={
                               listingType === "exchange"
-                                ? "bg-primary dark:bg-[#bcc2ff]"
-                                : "bg-surface-container-highest dark:bg-[#3f4345]"
-                            }`}
+                                ? {
+                                    backgroundColor: colorScheme === "dark" ? "#bcc2ff" : "#2b3896",
+                                    shadowColor: "#000",
+                                    shadowOffset: { width: 0, height: 2 },
+                                    shadowOpacity: 0.15,
+                                    shadowRadius: 3,
+                                    elevation: 3,
+                                  }
+                                : {
+                                    backgroundColor: colorScheme === "dark" ? "#3f4345" : "#e6e8ea",
+                                  }
+                            }
+                            className="px-4 py-2 rounded-full"
                           >
                             <Text
                               className={`text-sm font-semibold font-body ${
@@ -1052,7 +1127,10 @@ export default function CreateListingScreen() {
             </View>
           </ScrollView>
 
-          <BottomNav />
+          <BottomNav
+            activeRoute="CreateListing"
+            onNavigate={(route) => navigation.navigate(route)}
+          />
         </View>
       </View>
     </View>

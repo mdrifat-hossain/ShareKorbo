@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 
 import axios from "axios";
+import { BASE_URL } from "../utils/config";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -37,9 +38,9 @@ export default function LoginScreen({ navigation }: any) {
 
       setLoading(true);
 
-      const response = await axios.post("http://localhost:8000/auth/login", {
-        email,
-        password,
+      const response = await axios.post(`${BASE_URL}/auth/login`, {
+        email: email.trim().toLowerCase(),
+        password: password.trim(),
       });
 
       console.log(response.data);
@@ -65,10 +66,9 @@ export default function LoginScreen({ navigation }: any) {
         navigation.navigate("Marketplace");
       }
     } catch (error: any) {
-      console.log("LOGIN ERROR:");
-      console.log(error?.response?.data);
+      console.log("LOGIN ERROR DETAILS:", error);
 
-      alert(error?.response?.data?.detail || "Incorrect email or password");
+      alert(error?.response?.data?.detail || error?.message || "Incorrect email or password");
     } finally {
       setLoading(false);
     }
@@ -159,6 +159,8 @@ export default function LoginScreen({ navigation }: any) {
                   <TextInput
                     value={email}
                     onChangeText={setEmail}
+                    autoCapitalize="none"
+                    autoCorrect={false}
                     placeholder="e.g. 2024-1-2345"
                     className="pl-4 py-4 bg-surface-container-highest rounded-xl"
                   />
@@ -174,6 +176,8 @@ export default function LoginScreen({ navigation }: any) {
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
                     placeholder="••••••••"
                     className="pl-4 py-4 bg-surface-container-highest rounded-xl"
                   />

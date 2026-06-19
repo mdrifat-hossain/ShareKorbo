@@ -86,3 +86,22 @@ frontend/node_modules/
 
 # Expo
 frontend/.expo/
+
+# Node
+node_modules/
+.expo/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Environment
+.env
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

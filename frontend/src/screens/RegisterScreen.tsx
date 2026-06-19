@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 
 import * as ImagePicker from "expo-image-picker";
-import axios from "axios";
+import { BASE_URL } from "../utils/config";
 
 import { Alert, Image, ActivityIndicator } from "react-native";
 
@@ -41,43 +41,52 @@ export default function RegisterScreen({ navigation }: any) {
 
       const formData = new FormData();
 
-      formData.append("university", university);
-      formData.append("student_id", studentId);
-      formData.append("email", email);
-      formData.append("password", password);
+      formData.append("university", university.trim());
+      formData.append("student_id", studentId.trim());
+      formData.append("email", email.trim().toLowerCase());
+      formData.append("password", password.trim());
 
-      // Convert image to blob (for web support)
-      const imageResponse = await fetch(image.uri);
-
-      const blob = await imageResponse.blob();
-
-      formData.append(
-        "student_id_image",
-        blob,
-        image.fileName || "student-id.png",
-      );
+      formData.append("student_id_image", {
+        uri: image.uri,
+        name: image.fileName || "student-id.png",
+        type: image.mimeType || "image/png",
+      } as any);
 
       console.log("University:", university);
       console.log("Student ID:", studentId);
       console.log("Email:", email);
       console.log("Password:", password);
       console.log("Image:", image);
+      console.log("Register URL:", `${BASE_URL}/auth/register`);
 
       // SEND TO BACKEND
-      const registerResponse = await axios.post(
-        "http://localhost:8000/auth/register",
-        formData,
-      );
+      const registerResponse = await fetch(`${BASE_URL}/auth/register`, {
+        method: "POST",
+        body: formData,
+      });
 
-      console.log(registerResponse.data);
+      const registerData = await registerResponse.json();
+      console.log("Register response:", registerData);
 
-      Alert.alert("Success", "Registration UI working");
+      if (!registerResponse.ok || registerData.error) {
+        Alert.alert("Error", registerData.error || "Registration failed");
+        return;
+      }
+
+      Alert.alert("Success", "Registration submitted for verification");
 
       navigation.navigate("Verification");
-    } catch (error) {
-      console.log(error);
+    } catch (error: any) {
+      console.log("Register failed:", {
+        message: error?.message,
+        baseUrl: BASE_URL,
+        error,
+      });
 
-      Alert.alert("Error", "Something went wrong");
+      Alert.alert(
+        "Network Error",
+        `Cannot connect to backend at ${BASE_URL}. Make sure backend is running with --host 0.0.0.0 and phone is on same Wi-Fi.`
+      );
     } finally {
       setLoading(false);
     }
@@ -179,6 +188,8 @@ export default function RegisterScreen({ navigation }: any) {
                   <TextInput
                     value={studentId}
                     onChangeText={setStudentId}
+                    autoCapitalize="none"
+                    autoCorrect={false}
                     placeholder="e.g. 12345678"
                     className="px-5 py-4 bg-surface-container-highest rounded-lg"
                   />
@@ -191,6 +202,8 @@ export default function RegisterScreen({ navigation }: any) {
                   <TextInput
                     value={email}
                     onChangeText={setEmail}
+                    autoCapitalize="none"
+                    autoCorrect={false}
                     placeholder="name@university.edu"
                     className="px-5 py-4 bg-surface-container-highest rounded-lg"
                   />
@@ -204,6 +217,8 @@ export default function RegisterScreen({ navigation }: any) {
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
                     placeholder="••••••••"
                     className="px-5 py-4 bg-surface-container-highest rounded-lg"
                   />

@@ -5,6 +5,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import Date
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql import func
+from sqlalchemy import DateTime
 
 from app.database import Base
 
@@ -47,3 +48,9 @@ class ListingRequest(Base):
         TIMESTAMP(timezone=True),
         server_default=func.now()
     )
+
+    # QR verification tokens
+    exchange_token = Column(String(64), nullable=True)
+    return_token = Column(String(64), nullable=True)
+    exchanged_at = Column(DateTime, nullable=True)
+    returned_at = Column(DateTime, nullable=True)

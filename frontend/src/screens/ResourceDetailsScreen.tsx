@@ -21,12 +21,7 @@ import TopAppBar from "../components/TopAppBar";
 import BottomNav from "../components/BottomNav";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const BASE_URL =
-  Platform.OS === "web"
-    ? "http://localhost:8000"
-    : Platform.OS === "android"
-      ? "http://10.0.2.2:8000"
-      : "http://localhost:8000";
+import { BASE_URL } from "../utils/config";
 
 export default function ResourceDetailsScreen() {
   const { width } = useWindowDimensions();
@@ -138,11 +133,22 @@ export default function ResourceDetailsScreen() {
   return (
     <View className="flex-1 bg-surface dark:bg-[#191c1e] overflow-hidden relative">
       <View className="flex-1 flex-col lg:flex-row w-full relative">
-        <Sidebar />
+        <Sidebar
+          activeRoute="Marketplace"
+          onNavigate={(route) => (navigation.navigate as any)(route)}
+        />
 
         {/* Content Wrapper */}
         <View className="flex-1 h-full w-full relative">
-          <TopAppBar onMenuPress={() => navigation.goBack()} />
+          <TopAppBar
+            onMenuPress={() => navigation.goBack()}
+            onLogout={() =>
+              (navigation as any).reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              })
+            }
+          />
 
           {/* Main Content */}
           <ScrollView
@@ -216,9 +222,16 @@ export default function ResourceDetailsScreen() {
                       <Text className="font-headline text-3xl font-bold text-primary dark:text-[#bcc2ff] leading-tight mb-2">
                         {resource.title}
                       </Text>
-                      <Text className="text-on-surface-variant dark:text-[#c5c5d4] text-lg font-body">
-                        {resource.category} • {resource.condition}
-                      </Text>
+                      <View className="flex-row items-center gap-3 mb-1">
+                        <Text className="text-on-surface-variant dark:text-[#c5c5d4] text-lg font-body">
+                          {resource.category} • {resource.condition}
+                        </Text>
+                        <View className="bg-surface-container-highest dark:bg-[#3f4345] px-2 py-0.5 rounded-md">
+                          <Text className="text-[11px] font-bold text-on-surface-variant dark:text-[#c5c5d4] font-label">
+                            #{resource.id}
+                          </Text>
+                        </View>
+                      </View>
                     </View>
 
                     <View className="p-6 bg-surface-container-lowest dark:bg-[#2d3133] rounded-2xl shadow-sm mb-6 border border-surface-container-low dark:border-[#3f4345]">
@@ -292,7 +305,16 @@ export default function ResourceDetailsScreen() {
                           Active member
                         </Text>
                       </View>
-                      <TouchableOpacity className="p-2 bg-primary-container/10 dark:bg-primary-container/20 rounded-full active:scale-95 transition-transform">
+                      <TouchableOpacity
+                        onPress={() =>
+                          (navigation.navigate as any)("Inbox", {
+                            listing_id: Number(resource.id),
+                            owner_id: resource.owner_id,
+                            listing_title: resource.title,
+                          })
+                        }
+                        className="p-2 bg-primary-container/10 dark:bg-primary-container/20 rounded-full active:scale-95 transition-transform"
+                      >
                         <MaterialIcons
                           name="chat-bubble"
                           size={20}
@@ -463,7 +485,16 @@ export default function ResourceDetailsScreen() {
                           </TouchableOpacity>
                         )}
 
-                        <TouchableOpacity className="w-full py-4 rounded-xl border border-outline-variant/20 dark:border-[#3f4345] flex-row items-center justify-center gap-2 active:scale-[0.98] transition-transform bg-transparent">
+                        <TouchableOpacity
+                          onPress={() =>
+                            (navigation.navigate as any)("Inbox", {
+                              listing_id: Number(resource.id),
+                              owner_id: resource.owner_id,
+                              listing_title: resource.title,
+                            })
+                          }
+                          className="w-full py-4 rounded-xl border border-outline-variant/20 dark:border-[#3f4345] flex-row items-center justify-center gap-2 active:scale-[0.98] transition-transform bg-transparent"
+                        >
                           <MaterialIcons
                             name="chat"
                             size={20}
@@ -512,7 +543,10 @@ export default function ResourceDetailsScreen() {
             </View>
           </Modal>
 
-          <BottomNav />
+          <BottomNav
+            activeRoute="Marketplace"
+            onNavigate={(route) => (navigation.navigate as any)(route)}
+          />
         </View>
       </View>
     </View>

@@ -9,8 +9,8 @@ from passlib.hash import bcrypt
 from fastapi import HTTPException
 
 import shutil
-import os
 import uuid
+from pathlib import Path
 
 SECRET_KEY = "sharekorbo_secret_key"
 
@@ -18,9 +18,12 @@ ALGORITHM = "HS256"
 
 router = APIRouter()
 
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+UPLOAD_DIR = BACKEND_DIR / "uploads"
+
 
 @router.post("/register")
-async def register(
+def register(
     university: str = Form(...),
     student_id: str = Form(...),
     email: str = Form(...),
@@ -33,12 +36,13 @@ async def register(
     try:
 
         # create uploads folder
-        os.makedirs("uploads", exist_ok=True)
+        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
         # unique filename
         filename = f"{uuid.uuid4()}_{student_id_image.filename}"
 
-        image_path = f"uploads/{filename}"
+        image_path = UPLOAD_DIR / filename
+        image_url = f"uploads/{filename}"
 
         # save image
         with open(image_path, "wb") as buffer:
@@ -56,7 +60,7 @@ async def register(
             student_id=student_id,
             email=email,
             password=hashed_password,
-            student_id_image=image_path,
+            student_id_image=image_url,
             verification_status="pending"
         )
 
@@ -82,7 +86,7 @@ async def register(
         
         
 @router.post("/login")
-async def login(data: dict):
+def login(data: dict):
 
     db = SessionLocal()
 
@@ -132,5 +136,55 @@ async def login(data: dict):
             "user_id": user.user_id
         }
 
+    finally:
+        db.close()
+
+
+@router.post("/change-password")
+def change_password(data: dict):
+    db = SessionLocal()
+    try:
+        user_id = data.get("user_id")
+        old_password = data.get("old_password")
+        new_password = data.get("new_password")
+
+        if not all([user_id, old_password, new_password]):
+            return {"error": "Missing required fields"}
+
+        # Find user
+        user = db.query(User).filter(User.user_id == int(user_id)).first()
+        if not user:
+            return {"error": "User not found"}
+
+        # Verify old password
+        if not bcrypt.verify(old_password, user.password):
+            return {"error": "Incorrect current password"}
+
+        # Hash and update new password
+        user.password = bcrypt.hash(new_password)
+        db.commit()
+        return {"message": "Password updated successfully"}
+    except Exception as e:
+        print(e)
+        return {"error": str(e)}
+    finally:
+        db.close()
+
+
+@router.get("/user/{user_id}")
+def get_user_detail(user_id: int):
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.user_id == user_id).first()
+        if not user:
+            return {"error": "User not found"}
+        return {
+            "user_id": user.user_id,
+            "university": user.university,
+            "student_id": user.student_id,
+            "email": user.email,
+            "verification_status": user.verification_status,
+            "created_at": user.created_at.isoformat() if user.created_at else None
+        }
     finally:
         db.close()

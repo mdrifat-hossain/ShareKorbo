@@ -14,19 +14,17 @@ import axios from "axios";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
+import { useColorScheme } from "nativewind";
 import Sidebar from "../components/Sidebar";
 import TopAppBar from "../components/TopAppBar";
 import BottomNav from "../components/BottomNav";
 
-const BASE_URL =
-  Platform.OS === "web"
-    ? "http://localhost:8000"
-    : Platform.OS === "android"
-      ? "http://10.0.2.2:8000"       // Android emulator
-      : "http://localhost:8000";      // iOS simulator (change to LAN IP for real device)
+import { BASE_URL } from "../utils/config";
 
 
 export default function MarketplaceScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const { width } = useWindowDimensions();
   const isLg = width >= 1024;
   const isMd = width >= 768;
@@ -99,11 +97,21 @@ export default function MarketplaceScreen() {
   return (
     <View className="flex-1 bg-background dark:bg-on-background overflow-hidden relative">
       <View className="flex-1 flex-col lg:flex-row w-full relative">
-        <Sidebar />
+        <Sidebar
+          activeRoute="Marketplace"
+          onNavigate={(route) => (navigation.navigate as any)(route)}
+        />
 
         {/* Content Wrapper */}
         <View className="flex-1 h-full w-full relative">
-          <TopAppBar />
+          <TopAppBar
+            onLogout={() =>
+              (navigation as any).reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              })
+            }
+          />
 
           {/* Main Body */}
           <ScrollView
@@ -141,9 +149,19 @@ export default function MarketplaceScreen() {
                   <View className="flex-row items-center bg-surface-container-high dark:bg-[#2d3133] p-1 rounded-2xl self-start md:self-auto">
                     <TouchableOpacity
                       onPress={() => setIsCompact(false)}
-                      className={`p-2.5 rounded-xl ${
-                        !isCompact ? "bg-primary shadow-sm" : "bg-transparent"
-                      }`}
+                      style={
+                        !isCompact
+                          ? {
+                              backgroundColor: "#2b3896", // primary color
+                              shadowColor: "#000",
+                              shadowOffset: { width: 0, height: 1 },
+                              shadowOpacity: 0.1,
+                              shadowRadius: 2,
+                              elevation: 2,
+                            }
+                          : { backgroundColor: "transparent" }
+                      }
+                      className="p-2.5 rounded-xl"
                     >
                       <MaterialIcons
                         name="grid-view"
@@ -153,9 +171,19 @@ export default function MarketplaceScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => setIsCompact(true)}
-                      className={`p-2.5 rounded-xl ${
-                        isCompact ? "bg-primary shadow-sm" : "bg-transparent"
-                      }`}
+                      style={
+                        isCompact
+                          ? {
+                              backgroundColor: "#2b3896", // primary color
+                              shadowColor: "#000",
+                              shadowOffset: { width: 0, height: 1 },
+                              shadowOpacity: 0.1,
+                              shadowRadius: 2,
+                              elevation: 2,
+                            }
+                          : { backgroundColor: "transparent" }
+                      }
+                      className="p-2.5 rounded-xl"
                     >
                       <MaterialIcons
                         name="grid-on"
@@ -174,27 +202,42 @@ export default function MarketplaceScreen() {
                 className="mb-10 flex-row gap-3"
                 contentContainerStyle={{ paddingBottom: 8 }}
               >
-                {["All Resources", "Borrow", "Rent", "Sell", "Services"].map((filter) => (
-                  <TouchableOpacity 
-                    key={filter}
-                    onPress={() => setActiveFilter(filter)}
-                    className={`px-6 py-3 rounded-full mr-3 border ${
-                      activeFilter === filter 
-                        ? "bg-primary border-primary shadow-sm" 
-                        : "bg-surface-container-lowest dark:bg-[#2d3133] border-surface-container-low dark:border-[#191c1e]"
-                    }`}
-                  >
-                    <Text 
-                      className={`font-headline font-semibold text-sm ${
-                        activeFilter === filter 
-                          ? "text-white" 
-                          : "text-on-surface dark:text-white"
-                      }`}
+                {["All Resources", "Borrow", "Rent", "Sell", "Services"].map((filter) => {
+                  const isSelected = activeFilter === filter;
+                  return (
+                    <TouchableOpacity 
+                      key={filter}
+                      onPress={() => setActiveFilter(filter)}
+                      style={
+                        isSelected
+                          ? {
+                              backgroundColor: "#2b3896",
+                              borderColor: "#2b3896",
+                              shadowColor: "#000",
+                              shadowOffset: { width: 0, height: 1 },
+                              shadowOpacity: 0.1,
+                              shadowRadius: 2,
+                              elevation: 2,
+                            }
+                          : {
+                              backgroundColor: isDark ? "#2d3133" : "#ffffff",
+                              borderColor: isDark ? "#191c1e" : "rgba(197, 197, 212, 0.2)",
+                            }
+                      }
+                      className="px-6 py-3 rounded-full mr-3 border"
                     >
-                      {filter}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text 
+                        className={`font-headline font-semibold text-sm ${
+                          isSelected 
+                            ? "text-white" 
+                            : "text-on-surface dark:text-white"
+                        }`}
+                      >
+                        {filter}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
 
               {/* Resource Grid */}
@@ -363,7 +406,10 @@ export default function MarketplaceScreen() {
             </View>
           </ScrollView>
 
-          <BottomNav />
+          <BottomNav
+            activeRoute="Marketplace"
+            onNavigate={(route) => (navigation.navigate as any)(route)}
+          />
         </View>
       </View>
     </View>
